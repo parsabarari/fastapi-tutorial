@@ -1,41 +1,58 @@
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from fastapi import Depends, FastAPI, HTTPException
+from sqlalchemy.orm import Session
 
+import crud
+import schemas
+from database import Base, SessionLocal, engine
 
-class Item(BaseModel):
-    id: int
-    name: str
-    description: str | None = None
-    price: float
-    tax: float | None = None
-
-
-ItemsList = {}
-
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
 
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
-@app.post("/items/")
-async def create_item(item:Item):
-    ItemsList[item.id] = item
-    return ItemsList
 
-@app.get("/items/")
-async def read_items_list():
-    return ItemsList
+@app.post("/items/", response_model=schemas.ItemResponse)
+def create_item(item: schemas.ItemCreate, db: Session = Depends(get_db)):
+    return crud.create_item(db, item)
 
-@app.get("/items/{item_id}")
-async def read_items_detail(item_id: int):
-    item = ItemsList.get(item_id)
+
+@app.get("/items/", response_model=list[schemas.ItemResponse])
+def read_items(db: Session = Depends(get_db)):
+    return crud.get_items(db)
+
+
+@app.get("/items/{item_id}", response_model=schemas.ItemResponse)
+def read_item(item_id: int, db: Session = Depends(get_db)):
+    item = crud.get_item(db, item_id)
+
     if item is None:
-        raise HTTPException(status_code=404, detail="Item doesn't exist")
+        raise HTTPException(404, "Item doesn't exist")
+
     return item
 
+
 @app.delete("/items/{item_id}")
-async def delete_item(item_id: int):
-    if ItemsList.get(item_id) is None:
-        raise HTTPException(status_code=404, detail="Item doesn't exist")
-    del ItemsList[item_id]
-    return f"item {item_id} deleted successfully\nhere is Items list now:\n{ItemsList}"
+def delete_item(item_id: int, db: Session = Depends(get_db)):
+    item = crud.delete_item(db, item_id)
+
+    if item is None:
+        raise HTTPException(404, "Item doesn't exist")
+
+    return {"message": f"Item {item_id} deleted"}
+
+
+@app.put("/items/{item_id}", response_model=schemas.ItemResponse)
+def update_item(item_id: int, item: schemas.ItemUpdate, db: Session = Depends(get_db)):
+    updated = crud.update_item(db, item_id, item)
+
+    if updated is None:
+        raise HTTPException(404, "Item doesn't exist")
+
+    return updated
