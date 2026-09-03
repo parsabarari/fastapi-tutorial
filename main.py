@@ -1,6 +1,7 @@
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
+from collections.abc import AsyncIterable, Iterable
 from exceptions import ItemNotFoundError, DuplicateItemError
 from datetime import datetime, timedelta, timezone
 from typing import Annotated
@@ -8,10 +9,12 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from pwdlib import PasswordHash
 from jwt.exceptions import InvalidTokenError
+from io import BytesIO
 import httpx
 import asyncio
 import time
 import jwt
+import base64
 
 import crud
 import schemas
@@ -274,3 +277,23 @@ async def read_own_items(
 @app.get("/admin/users", tags=["auth"])
 async def list_users(current_user: Annotated[User, Depends(get_current_admin)]):
     return [{"username": u["username"], "role": u["role"]} for u in fake_users_db.values()]
+
+
+# streaming responses and sse week5
+
+test_string = "hello, this is a test response for stremingresponse learinng."
+
+async def generate():
+
+    yield "event: start\ndata: streaming started\n\n"
+
+    for word in test_string.split():
+        await asyncio.sleep(1)
+        yield f"event: token\ndata: {word}\n\n"
+
+    yield "event: end\ndata: done\n\n"
+
+
+@app.get("/stream")
+async def stream():
+    return StreamingResponse(generate(), media_type="text/event-stream")
