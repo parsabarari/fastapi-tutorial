@@ -305,3 +305,35 @@ async def generate():
 @app.get("/stream", tags=["Week 5: FastAPI + LLM Integration"])
 async def stream():
     return StreamingResponse(generate(), media_type="text/event-stream")
+
+
+# chaching week5
+
+import random
+
+random_sentences = [
+    "random sentence for because any day.",
+    "last one monday till post reset no black.",
+    "reset your tune folks day north.",
+]
+
+cache: dict[str, str] = {}
+
+
+class ChatRequest(BaseModel):
+    prompt: str
+
+
+@app.post("/chat", tags=["Week 5: caching"])
+async def cache_test(request: ChatRequest):
+    key = request.prompt.strip().lower()
+
+    if key in cache:
+        return {"response": cache[key], "cached": True}
+
+    await asyncio.sleep(2)
+
+    response = random.choice(random_sentences)
+    cache[key] = response
+
+    return {"response": response, "cached": False}
