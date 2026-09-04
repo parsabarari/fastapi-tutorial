@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<h2>Streaming Demo</h2>
+
+<div id="status"></div>
+<div id="output"></div>
+
+<script>
+const output = document.getElementById("output");
+const status = document.getElementById("status");
+const source = new EventSource("http://127.0.0.1:8000/stream");
+
+source.addEventListener("start", (event) => {
+    // پیام موقتِ "در حال تایپ" رو نشون بده
+    status.innerText = "Assistant is typing...";
+});
+
+source.addEventListener("token", (event) => {
+    output.innerHTML += event.data + " ";
+});
+
+source.addEventListener("end", (event) => {
+    // پیام تایپ رو با [DONE] عوض کن
+    status.innerText = "[DONE]";
+    source.close();
+});
+</script>
+
+</body>
+</html>

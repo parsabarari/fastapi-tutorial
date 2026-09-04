@@ -1,6 +1,7 @@
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.middleware.cors import CORSMiddleware
 from collections.abc import AsyncIterable, Iterable
 from exceptions import ItemNotFoundError, DuplicateItemError
 from datetime import datetime, timedelta, timezone
@@ -281,6 +282,13 @@ async def list_users(current_user: Annotated[User, Depends(get_current_admin)]):
 
 # streaming responses and sse week5
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # برای تست؛ بعداً محدودش کن
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 test_string = "hello, this is a test response for stremingresponse learinng."
 
 async def generate():
@@ -294,6 +302,6 @@ async def generate():
     yield "event: end\ndata: done\n\n"
 
 
-@app.get("/stream")
+@app.get("/stream", tags=["Week 5: FastAPI + LLM Integration"])
 async def stream():
     return StreamingResponse(generate(), media_type="text/event-stream")
