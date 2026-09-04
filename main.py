@@ -302,7 +302,7 @@ async def generate():
     yield "event: end\ndata: done\n\n"
 
 
-@app.get("/stream", tags=["Week 5: FastAPI + LLM Integration"])
+@app.get("/stream", tags=["Week5"])
 async def stream():
     return StreamingResponse(generate(), media_type="text/event-stream")
 
@@ -324,7 +324,7 @@ class ChatRequest(BaseModel):
     prompt: str
 
 
-@app.post("/chat", tags=["Week 5: caching"])
+@app.post("/chat-cache", tags=["Week5"])
 async def cache_test(request: ChatRequest):
     key = request.prompt.strip().lower()
 
@@ -337,3 +337,44 @@ async def cache_test(request: ChatRequest):
     cache[key] = response
 
     return {"response": response, "cached": False}
+
+# context management week5
+random_sentences = [
+    "random sentence for because any day.",
+    "last one monday till post reset no black.",
+    "reset your tune folks day north.",
+]
+
+system_prompt = {
+    "role": "system",
+    "content": "You are a helpful assistant.",
+}
+
+conversation: list[dict] = []
+
+MAX_HISTORY = 6  # فقط آخرین ۶ پیام (user + assistant) نگه داشته می‌شود
+
+
+class ChatRequest(BaseModel):
+    prompt: str
+
+
+@app.post("/chat", tags=["Week5"])
+async def chat_with_history(request: ChatRequest):
+    user_message = request.prompt.strip()
+
+    conversation.append({"role": "user", "content": user_message})
+
+    response = random.choice(random_sentences)
+
+    conversation.append({"role": "assistant", "content": response})
+
+    if len(conversation) > MAX_HISTORY:
+        del conversation[: len(conversation) - MAX_HISTORY]
+
+    history = [system_prompt] + conversation
+
+    return {
+        "response": response,
+        "history": history,
+    }
