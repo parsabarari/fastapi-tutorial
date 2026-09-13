@@ -378,3 +378,35 @@ async def chat_with_history(request: ChatRequest):
         "response": response,
         "history": history,
     }
+
+
+# Embeddings week6
+from sentence_transformers import SentenceTransformer
+from sklearn.metrics.pairwise import cosine_similarity
+
+model = SentenceTransformer("all-MiniLM-L6-v2")
+
+sentences = [
+    "I forgot my password.",
+    "How can I reset my password?",
+    "I cannot log into my account.",
+    "I lost access to my account.",
+    "The password reset link expired.",
+
+    "The weather is sunny.",
+    "It will rain tomorrow.",
+    "Today's temperature is high.",
+
+    "FastAPI is a Python framework.",
+    "Django is a web framework.",
+    "Python is a programming language.",
+    ]
+
+
+@app.get("/embedding", tags=["week6"])
+async def embedding():
+
+    embeddings = model.encode(sentences)
+    scores = cosine_similarity([embeddings[0]], embeddings)
+
+    return {"embeddings": embeddings.tolist(), "scores": scores.tolist()}
