@@ -410,3 +410,57 @@ async def embedding():
     scores = cosine_similarity([embeddings[0]], embeddings)
 
     return {"embeddings": embeddings.tolist(), "scores": scores.tolist()}
+
+# week6 vector databases
+from functools import lru_cache
+from pinecone import Pinecone
+
+settings = get_settings()
+
+@lru_cache
+def get_pinecone_index():
+    pc = Pinecone(api_key=settings.pinecone_key)
+    
+    return pc.index("fastapi-tutorial")
+
+
+text = """
+FastAPI is an async framework.
+It works well with AI APIs.
+Embeddings help semantic search.
+"""
+@app.get("/vector-upload", tags=["week6"])
+async def upload_vector():
+    vector = model.encode(text).tolist()
+    index = get_pinecone_index()
+
+    print(len(vector))
+    print("Pinecone key loaded:", bool(settings.pinecone_key))
+    print("Pinecone key length:", len(settings.pinecone_key))
+
+
+    index.upsert(
+        vectors=[
+        {
+            "id": "doc1",
+            "values": vector,
+            "metadata": {
+                "source": "manual.txt"
+            }
+        }
+    ])
+
+@app.post("/search")
+async def search(question: str):
+    query_vector = model.encode(question).tolist()
+
+    index = get_pinecone_index()
+
+    results = index.query(
+        vector=query_vector,
+        top_k=3,
+        include_metadata=True
+    )
+    print(type(results))
+
+    return results.to_dict()
