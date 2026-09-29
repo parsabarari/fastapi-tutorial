@@ -424,13 +424,13 @@ def get_pinecone_index():
     return pc.index("fastapi-tutorial")
 
 
-text = """
+vector_text = """
 FastAPI is an async framework.
 It works well with AI APIs.
 Embeddings help semantic search.
 """
 @app.get("/vector-upload", tags=["week6"])
-async def upload_vector():
+async def upload_vector(text: str = vector_text):
     vector = model.encode(text).tolist()
     index = get_pinecone_index()
 
@@ -450,7 +450,7 @@ async def upload_vector():
         }
     ])
 
-@app.post("/search")
+@app.post("/search", tags=["week6"])
 async def search(question: str):
     query_vector = model.encode(question).tolist()
 
@@ -464,3 +464,42 @@ async def search(question: str):
     print(type(results))
 
     return results.to_dict()
+
+# week 6 chunking
+
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+
+chunk_text = """
+# FastAPI Authentication Guide
+
+FastAPI provides several ways to implement authentication and authorization in an API. 
+One common approach is using JSON Web Tokens (JWT). In this approach, the user first 
+sends their username and password to a login endpoint. After validating the credentials, 
+the server creates an access token and returns it to the client.
+
+## JWT Authentication
+
+A JWT usually contains three parts: a header, a payload, and a signature. The payload 
+can contain information such as the user's ID, username, or permissions. The server 
+uses a secret key to sign the token, and the client sends the token with subsequent 
+requests.
+"""
+
+@app.get("/fixed-chunking", tags=["week6"])
+async def fixed_chunk(text: str = chunk_text, size: int = 100):
+    return [text[i:i+size] for i in range(0, len(text), size)]
+
+
+@app.get("/semantic-chunking", tags=["week6"])
+async def semantic_chunk(text: str = chunk_text, size: int = 100):
+    paragraph_chunks = text.split("\n\n")
+    return paragraph_chunks
+
+
+@app.get("/recursive-chunking", tags=["week6"])
+async def recursive_chunk(text: str = chunk_text, size: int = 100, overlap: int = 20):
+    splitter = RecursiveCharacterTextSplitter(chunk_size=size, chunk_overlap=overlap)
+
+    chunks = splitter.split_text(text)
+    return chunks
