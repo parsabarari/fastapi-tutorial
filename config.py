@@ -7,6 +7,9 @@ class Settings(BaseSettings):
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
     pinecone_key: str
+    openai_api_key: str
+    openai_base_url: str
+    openai_model: str
 
     class Config:
         env_file = ".env"

@@ -503,3 +503,128 @@ async def recursive_chunk(text: str = chunk_text, size: int = 100, overlap: int 
 
     chunks = splitter.split_text(text)
     return chunks
+
+# Week 7 - RAG Architecture
+
+from openai import OpenAI
+
+client = OpenAI(
+    base_url=settings.openai_base_url,
+    api_key=settings.openai_api_key,
+)
+
+rag_text = """
+FastAPI is an async framework.
+It works well with AI APIs.
+Embeddings help semantic search.
+"""
+
+
+@app.post("/rag-upload", tags=["week7"])
+async def rag_upload(text: str = rag_text):
+    vector = model.encode(text).tolist()
+
+    index = get_pinecone_index()
+
+    index.upsert(
+        vectors=[
+            {
+                "id": "rag_doc2",
+                "values": vector,
+                "metadata": {
+                    "source": "rag_manual_2.txt",
+                    "text": text,
+                },
+            }
+        ]
+    )
+
+    return {"message": "Document uploaded successfully"}
+
+
+@app.post("/rag-ask", tags=["week7"])
+async def rag_ask(question: str):
+    query_vector = model.encode(question).tolist()
+
+    index = get_pinecone_index()
+
+    results = index.query(
+        vector=query_vector,
+        top_k=3,
+        include_metadata=True,
+    )
+
+    matches = results.to_dict()["matches"]
+
+    context = [
+        match["metadata"]["text"]
+        for match in matches
+        if "text" in match["metadata"] and match["score"] >= 0.5
+    ]
+
+    if not context:
+        return {
+            "question": question,
+            "context": [],
+            "sources": [],
+            "answer": "I don't have enough information to answer this question.",
+        }
+
+    context_text = "\n\n".join(context)
+
+    prompt = f"""
+    You are a customer support assistant.
+
+    Use the following context to answer the question.
+
+    If the answer cannot be found in the context, say that you don't have enough information.
+
+    Context:
+    {context_text}
+
+    Question:
+    {question}
+    """
+
+    llm_response = client.chat.completions.create(
+        model=settings.openai_model,
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "You are a customer support assistant. "
+                    "Answer only using the provided context. "
+                    "If the answer is not supported by the context, "
+                    "say that you don't have enough information."
+                ),
+            },
+            {
+                "role": "user",
+                "content": f"""
+        Context:
+        {context_text}
+
+        Question:
+        {question}
+        """,
+            },
+        ],
+        extra_body={"reasoning": {"enabled": True}}
+        )
+
+    answer = llm_response.choices[0].message.content
+
+    return {
+        "question": question,
+        "context": context,
+        "sources": [
+            {
+                "id": match["id"],
+                "score": match["score"],
+                "source": match["metadata"].get("source"),
+            }
+            for match in matches
+            if "text" in match["metadata"] and match["score"] >= 0.5
+        ],
+        "answer": answer,
+    }
