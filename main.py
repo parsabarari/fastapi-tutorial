@@ -74,6 +74,11 @@ def update_item(item_id: int, item: schemas.ItemUpdate, db: Session = Depends(ge
     return crud.update_item(db, item_id, item)
 
 
+@app.get("/health", tags=["system"])
+def health():
+    return {"status": "ok"}
+
+
 # async testing and understanding endpoints week3
 
 @app.get("/sync/", tags=["async_test"])
@@ -284,7 +289,12 @@ async def list_users(current_user: Annotated[User, Depends(get_current_admin)]):
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # برای تست؛ بعداً محدودش کن
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ],
     allow_methods=["*"],
     allow_headers=["*"],
 )
