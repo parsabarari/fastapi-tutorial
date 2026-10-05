@@ -8,6 +8,8 @@ dependencies = [
     "google-genai>=2.20.0",
     "httpx>=0.28.1",
     "httpx2>=2.12.0",
+    "langchain>=1.4.3",
+    "langchain-openai>=1.6.7",
     "langchain-text-splitters>=1.1.2",
     "matplotlib>=3.11.2",
     "numpy>=2.4.6",
@@ -35,4 +37,8 @@ dev = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+
+[[tool.uv.index]]
+url = "https://package-mirror.liara.ir/repository/pypi/simple"
+default = true
 

@@ -10,6 +10,13 @@ from config import Settings, get_settings
 from database import SessionLocal
 from auth_models import User, UserInDB, TokenData, fake_users_db, get_user
 
+from functools import lru_cache
+
+from pinecone import Pinecone
+from sentence_transformers import SentenceTransformer
+
+from config import get_settings
+
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
@@ -56,3 +63,14 @@ async def get_current_admin(current_user: Annotated[User, Depends(get_current_ac
     if current_user.role != "admin":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
     return current_user
+
+
+settings = get_settings()
+
+model = SentenceTransformer("all-MiniLM-L6-v2")
+
+
+@lru_cache
+def get_pinecone_index():
+    pc = Pinecone(api_key=settings.pinecone_key)
+    return pc.index("fastapi-tutorial")

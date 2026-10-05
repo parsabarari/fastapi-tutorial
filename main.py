@@ -381,10 +381,9 @@ async def chat_with_history(request: ChatRequest):
 
 
 # Embeddings week6
-from sentence_transformers import SentenceTransformer
+from dependencies import model
 from sklearn.metrics.pairwise import cosine_similarity
 
-model = SentenceTransformer("all-MiniLM-L6-v2")
 
 sentences = [
     "I forgot my password.",
@@ -628,3 +627,34 @@ async def rag_ask(question: str):
         ],
         "answer": answer,
     }
+
+# Week 7 day 3&4 langchain
+
+from fastapi import FastAPI
+from collections.abc import AsyncIterator
+from fastapi.responses import StreamingResponse
+
+from rag.chain import rag_chain
+
+
+@app.post("/rag-ask-langchain", tags=["week7"])
+async def rag_ask_langchain(question: str):
+    answer = await rag_chain.ainvoke(question)
+
+    return {
+        "question": question,
+        "answer": answer,
+    }
+
+
+async def generate_rag_answer(question: str) -> AsyncIterator[str]:
+    async for chunk in rag_chain.astream(question):
+        yield chunk
+
+
+@app.post("/rag-ask-langchain-stream", tags=["week7"])
+async def rag_ask_langchain_stream(question: str):
+    return StreamingResponse(
+        generate_rag_answer(question),
+        media_type="text/plain",
+    )
