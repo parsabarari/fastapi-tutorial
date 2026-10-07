@@ -12,6 +12,7 @@ dependencies = [
     "langchain-openai>=1.6.7",
     "langchain-text-splitters>=1.1.2",
     "matplotlib>=3.11.2",
+    "nltk>=3.10.3",
     "numpy>=2.4.6",
     "openai>=3.6.0",
     "pinecone>=10.0.0",
